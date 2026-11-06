@@ -19,8 +19,8 @@
     </div>
   </header>
 
-  <!-- ───────────── HERO STRIP ───────────── -->
-  <div class="hero-strip">
+  <!-- ───────────── STATS STRIP ───────────── -->
+  <div class="stats-strip">
     <div class="stat-card">
       <span class="stat-number" id="totalCount">0</span>
       <span class="stat-label">Total Books</span>
@@ -33,32 +33,43 @@
       <span class="stat-number" id="unreadCount">0</span>
       <span class="stat-label">Unread</span>
     </div>
+    <div class="stat-card">
+      <span class="stat-number" id="avgRating">—</span>
+      <span class="stat-label">Avg Rating</span>
+    </div>
   </div>
 
-  <!-- ───────────── MAIN CONTENT ───────────── -->
+  <!-- ───────────── MAIN ───────────── -->
   <main class="main">
 
-    <!-- Search + Filter bar -->
+    <!-- Toolbar -->
     <div class="toolbar">
       <div class="search-wrap">
         <span class="search-icon">🔍</span>
-        <input
-          type="text"
-          id="searchInput"
-          class="search-input"
-          placeholder="Search by title or author…"
-        />
+        <input type="text" id="searchInput" class="search-input" placeholder="Search title, author or review…" />
         <button class="clear-search hidden" id="clearSearch">✕</button>
       </div>
-      <div class="filter-tabs">
-        <button class="tab active" data-filter="all">All</button>
-        <button class="tab" data-filter="read">Read</button>
-        <button class="tab" data-filter="unread">Unread</button>
+      <div class="toolbar-row2">
+        <div class="filter-tabs">
+          <button class="tab active" data-filter="all">All</button>
+          <button class="tab" data-filter="read">Read</button>
+          <button class="tab" data-filter="unread">Unread</button>
+        </div>
+        <div class="sort-wrap">
+          <select id="sortSelect" class="sort-select">
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="rating-high">Highest Rated</option>
+            <option value="rating-low">Lowest Rated</option>
+            <option value="title-az">Title A–Z</option>
+            <option value="title-za">Title Z–A</option>
+          </select>
+        </div>
       </div>
     </div>
 
-    <!-- Book list -->
-    <div id="bookList" class="book-list"></div>
+    <!-- Book sections rendered here by JS -->
+    <div id="sectionsContainer"></div>
 
     <!-- Empty state -->
     <div id="emptyState" class="empty-state hidden">
@@ -71,7 +82,7 @@
     <div id="noResults" class="empty-state hidden">
       <div class="empty-icon">🔎</div>
       <h2 class="empty-title">No matches found</h2>
-      <p class="empty-sub">Try a different title or author name.</p>
+      <p class="empty-sub">Try a different search term or filter.</p>
     </div>
 
   </main>
@@ -86,40 +97,76 @@
       <form id="bookForm" novalidate>
         <input type="hidden" id="bookId" />
 
-        <div class="form-group">
-          <label for="bookTitle">Title <span class="required">*</span></label>
-          <input
-            type="text"
-            id="bookTitle"
-            class="form-input"
-            placeholder="e.g. Atomic Habits"
-            maxlength="120"
-            required
-          />
-          <span class="error-msg" id="titleError"></span>
+        <!-- Row: Title + Author -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="bookTitle">Title <span class="required">*</span></label>
+            <input type="text" id="bookTitle" class="form-input" placeholder="e.g. Atomic Habits" maxlength="120" required />
+            <span class="error-msg" id="titleError"></span>
+          </div>
+          <div class="form-group">
+            <label for="bookAuthor">Author <span class="required">*</span></label>
+            <input type="text" id="bookAuthor" class="form-input" placeholder="e.g. James Clear" maxlength="100" required />
+            <span class="error-msg" id="authorError"></span>
+          </div>
         </div>
 
+        <!-- Genre -->
         <div class="form-group">
-          <label for="bookAuthor">Author <span class="required">*</span></label>
-          <input
-            type="text"
-            id="bookAuthor"
-            class="form-input"
-            placeholder="e.g. James Clear"
-            maxlength="100"
-            required
-          />
-          <span class="error-msg" id="authorError"></span>
+          <label for="bookGenre">Genre / Category</label>
+          <select id="bookGenre" class="form-input form-select">
+            <option value="Uncategorized">— Select Genre —</option>
+            <option value="Fiction">Fiction</option>
+            <option value="Non-Fiction">Non-Fiction</option>
+            <option value="Self Help">Self Help</option>
+            <option value="Science Fiction">Science Fiction</option>
+            <option value="Fantasy">Fantasy</option>
+            <option value="Mystery & Thriller">Mystery &amp; Thriller</option>
+            <option value="Biography">Biography &amp; Memoir</option>
+            <option value="History">History</option>
+            <option value="Science">Science &amp; Nature</option>
+            <option value="Business">Business &amp; Finance</option>
+            <option value="Romance">Romance</option>
+            <option value="Horror">Horror</option>
+            <option value="Children">Children's</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
 
+        <!-- Star Rating -->
+        <div class="form-group">
+          <label>Your Rating</label>
+          <div class="star-picker" id="starPicker" role="radiogroup" aria-label="Star rating">
+            <button type="button" class="star-btn" data-val="1" aria-label="1 star">★</button>
+            <button type="button" class="star-btn" data-val="2" aria-label="2 stars">★</button>
+            <button type="button" class="star-btn" data-val="3" aria-label="3 stars">★</button>
+            <button type="button" class="star-btn" data-val="4" aria-label="4 stars">★</button>
+            <button type="button" class="star-btn" data-val="5" aria-label="5 stars">★</button>
+            <span class="star-label" id="starLabel">Not rated</span>
+          </div>
+          <input type="hidden" id="bookRating" value="0" />
+        </div>
+
+        <!-- Review -->
+        <div class="form-group">
+          <label for="bookReview">Your Review <span class="optional">(optional)</span></label>
+          <textarea
+            id="bookReview"
+            class="form-input form-textarea"
+            placeholder="What did you think? Share your thoughts…"
+            maxlength="1000"
+            rows="4"
+          ></textarea>
+          <span class="char-count" id="charCount">0 / 1000</span>
+        </div>
+
+        <!-- Read toggle -->
         <div class="form-group">
           <label class="toggle-label" for="bookRead">
             <span>Mark as Read</span>
             <div class="toggle-wrap">
               <input type="checkbox" id="bookRead" class="toggle-input" />
-              <span class="toggle-track">
-                <span class="toggle-thumb"></span>
-              </span>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
             </div>
           </label>
         </div>
@@ -132,13 +179,13 @@
     </div>
   </div>
 
-  <!-- ───────────── CONFIRM DELETE DIALOG ───────────── -->
+  <!-- ───────────── CONFIRM DELETE ───────────── -->
   <div class="modal-overlay hidden" id="confirmOverlay">
     <div class="modal modal-sm" role="alertdialog" aria-modal="true">
       <div class="modal-header">
         <h2 class="modal-title">Delete Book?</h2>
       </div>
-      <p class="confirm-msg">Are you sure you want to remove <strong id="confirmBookTitle"></strong> from your shelf? This can't be undone.</p>
+      <p class="confirm-msg">Are you sure you want to remove <strong id="confirmBookTitle"></strong>? This can't be undone.</p>
       <div class="modal-actions">
         <button class="btn btn-ghost" id="cancelDelete">Keep It</button>
         <button class="btn btn-danger" id="confirmDelete">Yes, Delete</button>
@@ -146,10 +193,26 @@
     </div>
   </div>
 
-  <!-- Toast notification -->
+  <!-- ───────────── REVIEW MODAL (read-expanded) ───────────── -->
+  <div class="modal-overlay hidden" id="reviewOverlay">
+    <div class="modal modal-review" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2 class="modal-title" id="reviewModalTitle">Full Review</h2>
+        <button class="modal-close" id="closeReview" aria-label="Close">✕</button>
+      </div>
+      <div class="review-full-body">
+        <div class="review-meta-top">
+          <div class="review-stars-lg" id="reviewStarsLg"></div>
+          <span class="review-author-tag" id="reviewAuthorTag"></span>
+        </div>
+        <p class="review-full-text" id="reviewFullText"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
   <div class="toast hidden" id="toast"></div>
 
   <script src="script.js"></script>
 </body>
 </html>
-
